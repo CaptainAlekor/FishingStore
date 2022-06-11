@@ -2,13 +2,17 @@ from datetime import datetime
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 import json
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
-from .forms import OrderForm, CreateUserForm
+from .forms import CreateUserForm
+import logging
 
 from .models import *
 
+logger = logging.getLogger('main')
+
 def registerPage(request):
+    logger.info('Now on registration page (views.py registerPage)')
+
     form = CreateUserForm()
 
     if request.method == 'POST':
@@ -20,6 +24,8 @@ def registerPage(request):
     return render(request, 'accounts/register.html', context)
 
 def loginPage(request):
+    logger.info('Now on login page (views.py loginPage)')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -34,10 +40,13 @@ def loginPage(request):
     return render(request, 'accounts/login.html', context)
 
 def logoutUser(request):
+    logger.info('User logged out (views.py logoutUser)')
     logout(request)
     return redirect('login')
 
 def store(request):
+    logger.info('Now on store page (views.py store)')
+
     if request.user.is_authenticated:
         try:
             customer = request.user.customer
@@ -56,6 +65,7 @@ def store(request):
     return render(request, 'store/store.html', context)
 
 def cart(request):
+    logger.info('Now on cart page (views.py cart)')
 
     if request.user.is_authenticated:
         customer = request.user.customer
@@ -71,6 +81,7 @@ def cart(request):
     return render(request, 'store/cart.html', context)
 
 def checkout(request):
+    logger.info('Now on checkout page (views.py checkout)')
     if request.user.is_authenticated:
         customer = request.user.customer
         order, created = Order.objects.get_or_create(customer=customer, complete=False)
@@ -85,6 +96,7 @@ def checkout(request):
     return render(request, 'store/checkout.html', context)
 
 def updateItem(request):
+    logger.info('Updating items... (views.py updateItem)')
     data = json.loads(request.body)
     productId = data['productId']
     action = data['action']
@@ -108,9 +120,11 @@ def updateItem(request):
     if orderItem.quantity <= 0:
         orderItem.delete()
 
+    logger.info('Items updated (views.py updateItem)')
     return JsonResponse('Item was added', safe=False)
 
 def processOrder(request):
+    logger.info('Processing order... (views.py processOrder)')
     transaction_id = datetime.now().timestamp()
     data = json.loads(request.body)
 
@@ -133,7 +147,9 @@ def processOrder(request):
                 state=data['shipping']['state'],
                 zipcode=data['shipping']['zipcode'],
             )
-
+            logger.info('Updating items... (views.py updateItem)')
     else:
-        print('User is not logged in...')
+        logger.info('User is not logged in... (views.py updateItem)')
+
+    
     return JsonResponse('Payment complete', safe=False)
