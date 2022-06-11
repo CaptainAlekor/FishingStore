@@ -33,6 +33,10 @@ def loginPage(request):
     context = {}
     return render(request, 'accounts/login.html', context)
 
+def logoutUser(request):
+    logout(request)
+    return redirect('login')
+
 def store(request):
     if request.user.is_authenticated:
         try:
