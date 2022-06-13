@@ -5,6 +5,8 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
 import logging
+import asyncio
+from asgiref.sync import sync_to_async
 
 from .models import *
 
@@ -44,6 +46,21 @@ def logoutUser(request):
     logout(request)
     return redirect('login')
 
+@sync_to_async
+def get_products():
+    products = Product.objects.all()
+    return products
+
+@sync_to_async
+def get_customer(user, name, email):
+    customer = Customer.objects.get_or_create(user=user, name=name, email=email)
+    return customer
+
+@sync_to_async
+def get_order(customer, complete):
+    order, created = Order.objects.get_or_create(customer=customer, complete=complete)
+    return order
+
 def store(request):
     logger.info('Now on store page (views.py store)')
 
@@ -51,16 +68,14 @@ def store(request):
         try:
             customer = request.user.customer
         except:
-            customer = Customer.objects.get_or_create(user=request.user, name=request.user.username, email=request.user.email)
-        order, created = Order.objects.get_or_create(customer=customer, complete=False)
-        items = order.orderitem_set.all()
+            customer = asyncio.run(get_customer(request.user, request.user.username, request.user.email))
+        order = asyncio.run(get_order(customer, False))
         cartItems = order.get_cart_items
     else:
-        items = []
         order = {'get_cart_total': 0, 'get_cart_items': 0, 'shipping': False}
         cartItems = order['get_cart_items']
 
-    products = Product.objects.all()
+    products = asyncio.run(get_products())
     context = {'products': products, 'cartItems': cartItems}
     return render(request, 'store/store.html', context)
 
@@ -69,7 +84,7 @@ def cart(request):
 
     if request.user.is_authenticated:
         customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer=customer, complete=False)
+        order = asyncio.run(get_order(customer, False))
         items = order.orderitem_set.all()
         cartItems = order.get_cart_items
     else:
@@ -84,7 +99,7 @@ def checkout(request):
     logger.info('Now on checkout page (views.py checkout)')
     if request.user.is_authenticated:
         customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer=customer, complete=False)
+        order = asyncio.run(get_order(customer, False))
         items = order.orderitem_set.all()
         cartItems = order.get_cart_items
     else:
@@ -94,6 +109,16 @@ def checkout(request):
 
     context = {'items': items, 'order': order, 'cartItems': cartItems}
     return render(request, 'store/checkout.html', context)
+
+@sync_to_async
+def get_product_by_id(prod_id):
+    products = Product.objects.get(id=prod_id)
+    return products
+
+@sync_to_async
+def get_order_item(order, product):
+    orderItem, created = OrderItem.objects.get_or_create(order=order, product=product)
+    return orderItem
 
 def updateItem(request):
     logger.info('Updating items... (views.py updateItem)')
@@ -105,10 +130,10 @@ def updateItem(request):
     print('ProductId:', productId)
 
     customer = request.user.customer
-    product = Product.objects.get(id=productId)
-    order, created = Order.objects.get_or_create(customer=customer, complete=False)
+    product = asyncio.run(get_product_by_id(productId))
+    order = asyncio.run(get_order(customer, False))
 
-    orderItem, created = OrderItem.objects.get_or_create(order=order, product=product)
+    orderItem = asyncio.run(get_order_item(order, product))
 
     if action == 'add':
         orderItem.quantity = orderItem.quantity + 1
@@ -130,7 +155,7 @@ def processOrder(request):
 
     if request.user.is_authenticated:
         customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer=customer, complete=False)
+        order = asyncio.run(get_order(customer, False)) 
         total = float(data['form']['total'])
         order.transaction_id = transaction_id
 
