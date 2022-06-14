@@ -1,20 +1,22 @@
 from pathlib import Path
+import dj_database_url
+import environ
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+env = environ.FileAwareEnv()
+
+environ.FileAwareEnv.read_env()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DJANGO_ALLOWED_HOSTS= 'localhost 127.0.0.1 [::1]'
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
+#SECRET_KEY = 'django-insecure-%=1!(vt^i^ap$u%rdpxtmjf4dx86*q#!6d7o6zuzb!-+-ks9j3'
+SECRET_KEY = env('SECRET_KEY')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%=1!(vt^i^ap$u%rdpxtmjf4dx86*q#!6d7o6zuzb!-+-ks9j3'
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 LOGGING = {
     'version': 1,
@@ -60,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,9 +91,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
+CSRF_TRUSTED_ORIGINS = ['https://bspro.herokuapp.com']
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+
+# DATABASE_URL = 'postgresql://<postgresql>'
+# DATABASES = {'default': dj_database_url.config('DATABASE_URL')}
 
 DATABASES = {
     'default':{

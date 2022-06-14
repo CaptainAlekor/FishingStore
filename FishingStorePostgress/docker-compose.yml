@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      DEBUG: 1
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+
+  worker:
+    build: .
+    command: python manage.py rqworker default
+    environment:
+      DEBUG: 1
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+
+  db:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "fishingstoredb"
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "SpainPrince21"
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
